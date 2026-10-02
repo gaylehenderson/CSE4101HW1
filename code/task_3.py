@@ -14,20 +14,18 @@ from numpy.linalg import inv
 
 # generate an observed network
 def gen_net_obs(graph, test_edges,test_non_edges):
-    adj_matrix = []
+    adj_matrix = graph.get_adj_matrix()
     # adjacency matrix of the observed graph, which is a copy of the adj_matrix of the original graph
     adj_obs = adj_matrix.copy()
-    # number of edges in target set
-    pos_num = 0
-    # number of non_edges in target set
-    neg_num = 0
     
     # test_set is the union of test edges and non-edges
     test_set = np.concatenate((test_edges,test_non_edges),axis = 0)
 
     #--remove edges by chaning adj_obs
     for edge in test_edges:
-        edge=0
+        u,v = edge
+        adj_obs[u][v]=0
+        adj_obs[v][u]=0
 
     return adj_obs, test_set
 
@@ -43,12 +41,12 @@ def compute_Jaccard(adj,node_pairs): # cn/d_u + d_v - cn
         v = node_pairs[i,1]
         
         # number of common neighbors
-        cn_num = 0
+        cn_num = adj[u].dot(adj[v])
         # degree of u and v
-        deg_u = 0
-        deg_v = 0
+        deg_u = adj[u].sum()
+        deg_v = adj[v].sum()
         # similarity between u and v
-        sim_vec[i] = 0
+        sim_vec[i] = cn_num/(deg_u + deg_v - cn_num)
         
     return sim_vec
 
@@ -62,11 +60,15 @@ def compute_Katz(adj,node_pairs):
 
     #compute similarity matrix
     beta = 0.09
-    Katz_matrix = []
+    n = adj.shape[0]
+    I = np.eye(n)
+    Katz_matrix = np.linalg.inv(I - beta * adj)-I
     
     # get the Katz similarity for each pair of node
     for i in range(pair_num):
-        sim_vec[i] = 0
+        u = node_pairs[i,0]
+        v = node_pairs[i,1]
+        sim_vec[i] = Katz_matrix[u,v]
     return sim_vec
 
 # link prediction, by comparing similarity with a threshold theta
@@ -81,7 +83,7 @@ def link_pred(adj,node_pairs, metric,theta):
         sim_vec = compute_Jaccard(adj,node_pairs)
     elif metric == 'Katz':
         sim_vec = compute_Katz(adj,node_pairs)
-        #print(sim_vec)
+        print(sim_vec)
 
     # make prediction
 
@@ -89,7 +91,10 @@ def link_pred(adj,node_pairs, metric,theta):
 
     # if sim_vec[i] >= theta, predict node pair i as a link (set pred[i] as 1)
     # otherwise set pred[i] as 0
-
-    pred = []
+    for i in range(len(node_pairs)):
+        if sim_vec[i] >= theta:
+            pred[i] = 1
+        else:
+            pred[i] = 0
 
     return pred

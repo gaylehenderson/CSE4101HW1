@@ -25,69 +25,64 @@ def compute_deg_distr(graph):
     return degs, counts
 
 #------------ Task 1.2: compute clustering coefficient
-def get_cc_local(graph,nid):
+def get_cc_local(graph, nid):
     
     # get the neighbors of node nid
-    adj_list=graph.get_adj_list()
-    nbrs=adj_list[nid]
+    adj_list = graph.get_adj_list()
+    nbrs = adj_list[nid]
 
-    
-    # number of neighbors of node nid 
+    # number of neighbors of node nid
     deg = len(nbrs)
 
     # get adjacency matrix of graph in dense form
-    adj_matrix = graph.get_adj_matrix(nid)
+    adj_matrix = graph.get_adj_matrix()
 
-    # all possible pairs of neighbors of nid
-    all_pairs = list(combinations(nbrs,2))
-    N1=len(all_pairs) #all possible pairs of neighbors of nid
-    
-    # number of connected pairs of neighbors
-    closed_pairs = 0
-        
     if deg < 2:
         return 0.0
     else:
         # enumerate all pairs of neighbors
-        comb = combinations(nbrs,2) 
+        comb = combinations(nbrs, 2)
 
-        for node_pair in list(comb):  
-            u,w=node_pair
-            N1 =+ 1            
-            # check if this pair of nodes are connected and update closed_pairs
+        N0 = 0
+        closed_pairs = 0
+
+        for node_pair in list(comb):
+            u, w = node_pair
+            N0 += 1
             if adj_matrix[u][w] == 1:
                 closed_pairs += 1
 
-        # return local clustering coefficient
-        cc_local= closed_pairs/ N1
+        cc_local = closed_pairs / N0
         return cc_local
 
 def get_cc_global(graph):
-    adj_matrix = []
+    adj_matrix = graph.get_adj_matrix()
+    adj_list=graph.get_adj_list()
     
     # number of closed 2-pth
     closed_2_path = 0
     
     # number of 2-path 
-    all_2_path = 1
+    all_2_path = 0
     
     #loop over all nodes
     for i in range(graph.n):
         # get the neighbors of node i
-        nbrs = []
-        nbrs_num = 0
+        nbrs = adj_list[i]
+        nbrs_num = len(nbrs)
         if nbrs_num >= 2:
             # enumerate all pairs of neighbors
-            comb = combinations()                      
+            comb = combinations(nbrs, 2)                      
             for node_pair in list(comb):
-                # update all_2_path
-                all_2_path = 0
-
-                #update closed_2_path
-                closed_2_path = 0
+                u,w=node_pair
+                all_2_path += 1
+                if adj_matrix[u][w] == 1:
+                    #update closed_2_path
+                    closed_2_path += 1
 
     # return global clustering coefficient
-    return 0
+    cc_global= closed_2_path/all_2_path
+    return cc_global
 
 # --------------------- Task 1.3: compute diameter
 def distance_BFS(adj_list, s):
@@ -116,22 +111,22 @@ def distance_BFS(adj_list, s):
     # while current layer is not empty
     while len(current_level)>0:
         for node in current_level: # each node in current layer
-            nbrs = []
+            nbrs = adj_list[node]
             for nbr in nbrs: #for each neighbor of this node
                 # add a neighbor into next layer, if the neighbor is not visited yet
-                nbr = 0
-                
-                # remember to update visited
+                if visited[nbr] == False:
+                    next_level.append(nbr)
+                    visited[nbr]=True
 
 
         # update depth
-        depth = 0
+        depth += 1
         # update distance from s to all nodes in the next_level
         for child in next_level:
-            distance[child] = 0
+            distance[child] = depth
 
         # set current_level as next_level
-        current_level = []
+        current_level = next_level
         # empty next_level
         next_level = []
 
@@ -140,13 +135,15 @@ def distance_BFS(adj_list, s):
 def get_diameter(graph):
     adj_list = graph.get_adj_list()
 
-    diameter = -1
+    diameter = 1
 
     # treat every node in graph as the source node
     # call distance_BFS() to get the distance
     # find the max distance
     for source in range(graph.n):
-        source = 0
-
+        distance = distance_BFS(adj_list, source)
+        max_distance = max(distance)
+        if max_distance > diameter:
+            diameter = max_distance
 
     return diameter
